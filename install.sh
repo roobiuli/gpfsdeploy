@@ -25,11 +25,11 @@ then
 echo "Installing remi repo "
 #RVERS=`lsb_release -a | grep "Release" | awk '{print $2 }' | cut -d"." -f1`
 RVERS=`cat /etc/issue | grep release | grep -o [0-9] | head -n 1`
-sudo yum install -y wget vim
+ yum install -y wget vim
 
 wget http://rpms.famillecollet.com/enterprise/remi-release-$RVERS.rpm
 
-sudo rpm -Uvh remi*.rpm ; rm -rf *.rpm
+ rpm -Uvh remi*.rpm ; rm -rf *.rpm
 
 #ENABLE REMI REPO
 sed -i.backup -e s'/enable=0/enable=1/g' /etc/yum.repos.d/remi.repo
@@ -44,18 +44,24 @@ fi
 ##Install vagrant and VBOX
 
 exists /usr/bin/virtualbox
-	if [ $? -eq 0]
+	if [ $? -eq 0 ]
 		then
-			wget -o /etc/yum.repos.d/virtualbox.repo http://download.virtualbox.org/virtualbox/rpm/rhel/virtualbox.repo
+			echo "Iinstalling Virtualbox.."
+			cd /etc/yum.repos.d/
+			wget http://download.virtualbox.org/virtualbox/rpm/rhel/virtualbox.repo
+			cd ~/
+			yum install VirtualBox-5.1.x86_64 -y 
 		else 
 			echo "Virtualbox found .. Doing nothing"
 		fi
 
 exists /usr/bin/vagrant
-	if [ $? -eq 0]
+	if [ $? -eq 0 ]
 		then
+		echo "Installing Vagrant..."
 		wget https://releases.hashicorp.com/vagrant/1.8.6/vagrant_1.8.6_x86_64.rpm
 		rpm -Uvh vagrant*.rpm
+		rm -rf vagrant*.rpm
 	else 
 		echo "Vagrant found ... doing nothing"
 	fi
