@@ -74,7 +74,24 @@ exists /usr/bin/vagrant
 #yum install install ruby
 
 
+ruby -v 
 
+if [ $? -ne 0 ]
+	then
+		echo "Installing ruby and chef-solo"
+		yum install ruby -y && curl -L https://www.opscode.com/chef/install.sh | bash
+	else
+		echo "Ruby found .. Probing for chef-solo"
+		exists /usr/bin/chef-solo
+
+		if [ $? -ne 0 ]
+			then
+			echo "Installing Chef"
+			curl -L https://www.opscode.com/chef/install.sh | bash
+		else 
+			"Nothing to do.. Please review if Chef-Solo and ruby are installed"
+		fi
+	fi
 
 
 

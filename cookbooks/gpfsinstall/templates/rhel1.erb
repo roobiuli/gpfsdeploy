@@ -1,0 +1,26 @@
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "https://github.com/CommanderK5/packer-centos-template/releases/download/0.6.7/vagrant-centos-6.7.box"
+
+
+	config.vm.provider :virtualbox do |v|
+  if not File.exists?('disk1_gpfs.vdi')
+  v.customize ['createhd', '--filename', 'disk1_gpfs.vdi', '--size', 10 * 1024 ]
+end
+  
+  if not File.exists?('disk2_gpfs.vdi')
+  v.customize ['createhd', '--filename', 'disk2_gpfs.vdi', '--size', 10 * 1024 ]
+  end
+  v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', 'disk1_gpfs.vdi']
+  v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 2, '--device', 0, '--type', 'hdd', '--medium', 'disk2_gpfs.vdi']
+
+end
+
+
+ config.vm.network "public_network", ip: "192.168.0.157", bridge: "enp1s5", adapter: 2
+
+
+
+
+end
+
