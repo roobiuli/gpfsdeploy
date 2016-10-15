@@ -2,6 +2,9 @@ Vagrant.configure("2") do |config|
 
   config.vm.box = "https://github.com/CommanderK5/packer-centos-template/releases/download/0.6.7/vagrant-centos-6.7.box"
 
+### Creating disks for future GPFS clustered FS 
+####
+################ Vagrant Section ######################
 
 	config.vm.provider :virtualbox do |v|
   if not File.exists?('disk1_gpfs.vdi')
@@ -15,6 +18,71 @@ end
   v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 2, '--device', 0, '--type', 'hdd', '--medium', 'disk2_gpfs.vdi']
 
 end
+
+
+# saving BASH script as variable to be parsed to Vagrant provisioner 
+#######################
+########
+#
+
+$script = << BASH
+
+	ls /vagrant/Spectrum_Scale_Advanced-4.2.1.0-x86_64-Linux-install
+
+		if [ $? -ne 0 ]
+		then
+			echo "GPFS INSTALLER NOT FOUND IN /vagrant You`re not Authorized to have the GPFS Installer :) Contact Robert Nicoara ASAP on ST Internal Messenger "
+		else
+			mkdir -p /root/gpfspack ; cd /root/gpfspack ; cp /vagrant/Spectrum_Scale_Advanced-4.2.1.0-x86_64-Linux-install . ;  tar -xvf SpectrumScaleAdv421LXx86.tgz ; chmod +x Spectrum_Scale_Advanced-4.2.1.0-x86_64-Linux-install ; ./Spectrum_Scale_Advanced-4.2.1.0-x86_64-Linux-install --text-only --silent
+			cd /usr/lpp/mmfs/4.2.1.0 ; mkdir need ; cd need
+
+#STARTING for to move base needded files 
+
+     			for pack in gpfs.ext-*.x86_64.rpm gpfs.docs-*.noarch.rpm kmod-gpfs-*.sdl6.x86_64.rpm gpfs.base-*.x86_64.rpm gpfs.gskit-*.x86_64.rpm gpfs.msg.en_US-*.noarch.rpm gpfs.gpl-*.noarch.rpm
+	         		do
+			    	cp ../$pack .
+				done
+
+	# Begining local install
+	       yum localinstall *rpm 
+
+	# Adding second first ( this) and second host ips in /etc/hosts
+		echo >> "192.168.0.157		gpfs01.learning.learn gpfs01" >> /etc/hosts
+		echo >> "192.168.0.158		gpfs02.learning.learn gpfs02" >> /etc/hosts
+
+	# Making hosts love each other ( SSH Authorized_keys)
+
+		ssh-keygen -f /root/.ssh/id_rsa -t rsa -N '' #<--- Here we generate the key without passphrase 
+
+		 ssh-copy-id root@gpfs02
+
+     # Setting the same KHeaders / kernel / versions ... 
+
+    yum install kernel-devel-2.6.32-504.12.2.el6
+    yum install imake gcc-c++ rpm-build
+
+    # GPFS portability layer (making gpfs access the LIN Kern ) 
+
+    	cd /usr/lpp/mmfs/src ; make Autoconfig ; make World ; make InstallImages ; make rpm   #<-- This will generate an RPM needed on all nodes 
+
+# Sending the rpm to node 2 
+    	scp /root/rpmbuild/RPMS/x86_64/*rpm root@gpfs02:/root/
+
+    	# Installing the RPM on LocalHost as well
+    		yum localinstall /root/rpmbuild/RPMS/x86_64/*rpm
+
+
+
+
+
+
+  
+fi
+   BASH
+
+ config.vm.provision "shell", run: "once" do |s|
+ s.inline = $script
+ end
 
 
  config.vm.network "public_network", ip: "192.168.0.157", bridge: "enp1s5", adapter: 2

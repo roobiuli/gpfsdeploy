@@ -22,6 +22,16 @@ end
 	mode 755
 	action :create
 	end
+
+	NUM = "#{fol}".split('').last
+	template "#{WORKDIR}/Desktop/work/gpfscluster#{fol}/Vagrant" do
+		source "rhel#{NUM}.erb"
+		user	"#{USR}"
+		group	"#{USR}"
+		mode 0644
+	end
+
+
 end
 
 
