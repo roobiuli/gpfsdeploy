@@ -54,7 +54,7 @@ $script = << BASH
 
 		ssh-keygen -f /root/.ssh/id_rsa -t rsa -N '' #<--- Here we generate the key without passphrase 
 
-		 ssh-copy-id root@gpfs02
+		 
 
      # Setting the same KHeaders / kernel / versions ... 
 
@@ -65,11 +65,56 @@ $script = << BASH
 
     	cd /usr/lpp/mmfs/src ; make Autoconfig ; make World ; make InstallImages ; make rpm   #<-- This will generate an RPM needed on all nodes 
 
-# Sending the rpm to node 2 
+# Sending the rpm to node 2
+ssh-copy-id root@gpfs02 
     	scp /root/rpmbuild/RPMS/x86_64/*rpm root@gpfs02:/root/
 
     	# Installing the RPM on LocalHost as well
     		yum localinstall /root/rpmbuild/RPMS/x86_64/*rpm
+
+
+
+
+
+
+############## CREATING THE CLUSER ( QUORUM SIDE)
+
+/usr/lpp/mmfs/bin/mmcrcluster -N gpfs01:manager-quorum -p gpfs01 -r /usr/bin/ssh -R /usr/bin/scp
+# ACCEPT LICENSE
+ /usr/lpp/mmfs/bin/mmchlicense server --accept -N gpfs01
+
+
+ # ADD SECOND NODE
+ /usr/lpp/mmfs/bin/mmaddnode -N gpfs02 
+ #ACC L for second N
+
+ /usr/lpp/mmfs/bin/mmchlicense server --accept -N gpfs02
+
+
+
+ # CREATE NSD DISKS CONFIG
+
+
+
+ touch /var/rsa/NSDCONF.txt
+
+ echo "%nsd:" >> /var/rsa/NSDCONF.txt
+echo "device=/dev/sdb" >> /var/rsa/NSDCONF.txt
+echo "nsd=mynsd1" >> /var/rsa/NSDCONF.txt
+echo "usage=dataAndMetadata" >> /var/rsa/NSDCONF.txt
+ 
+echo "%nsd:" >> /var/rsa/NSDCONF.txt
+echo "device=/dev/sdc" >> /var/rsa/NSDCONF.txt
+echo "nsd=mynsd2" >> /var/rsa/NSDCONF.txt
+echo "usage=dataAndMetadata" >> /var/rsa/NSDCONF.txt
+
+/usr/lpp/mmfs/bin/mmcrnsd -F /var/rsa/NSDCONF.txt
+
+
+/usr/lpp/mmfs/bin/mmcrfs /dev/fs_gpfs01 -F /var/rsa/NSDCONF.txt -A yes -T /fs_gpfs01
+
+
+/usr/lpp/mmfs/bin/mmmount /fs_gpfs01 -a
 
 
 
